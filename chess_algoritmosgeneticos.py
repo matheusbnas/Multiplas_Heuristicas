@@ -17,7 +17,7 @@ class AnimatedKnightTour:
         
     def create_board_image(self, current_pos=None, path=None):
         """Cria uma única imagem do tabuleiro"""
-        fig, ax = plt.subplots(figsize=(10, 10))
+        fig, ax = plt.subplots(figsize=(12, 12))
         
         # Desenha o tabuleiro com letras e números nas bordas
         for i in range(self.board_size):
@@ -26,12 +26,14 @@ class AnimatedKnightTour:
                 # Inverte o Y para desenhar o tabuleiro corretamente
                 ax.add_patch(Rectangle((j, i), 1, 1, facecolor=color))
                 
-                # Adiciona letras (A-H) na parte inferior
-                if i == 0:  # Primeira linha
-                    ax.text(j + 0.5, -0.3, chr(65 + j), ha='center', va='center')
-                # Adiciona números (1-8) na lateral
+                # Adiciona letras na parte inferior
+                if i == 0:
+                    ax.text(j + 0.5, -0.3, chr(65 + j) if j < 26 else f'A{j-25}', 
+                           ha='center', va='center', fontsize=8)
+                # Adiciona números na lateral
                 if j == 0:
-                    ax.text(-0.3, i + 0.5, str(1 + i), ha='center', va='center')
+                    ax.text(-0.3, i + 0.5, str(self.board_size - i), 
+                           ha='center', va='center', fontsize=8)
         
         # Desenha o caminho até a posição atual
         if path and len(path) > 1:
@@ -111,15 +113,118 @@ class AnimatedKnightTour:
         
         return min(next_moves, key=lambda x: x[0])[1]
     
-    def solve_knights_tour(self, start_position):
-        """Resolve o passeio do cavalo"""
+    def neural_next_move(self, position):
+        """Implementa a heurística Neural"""
+        valid_moves = self.get_valid_moves(position)
+        if not valid_moves:
+            return None
+        
+        next_moves = []
+        for move in valid_moves:
+            # Calcula características para a rede neural
+            accessibility = len(self.get_valid_moves(move))
+            center_distance = abs(move[0] - self.board_size//2) + abs(move[1] - self.board_size//2)
+            edge_distance = min(move[0], move[1], self.board_size-1-move[0], self.board_size-1-move[1])
+            
+            # Simula um score neural (simplificado)
+            score = accessibility * 0.5 + edge_distance * 0.3 + (1/center_distance) * 0.2
+            next_moves.append((score, move))
+        
+        return max(next_moves, key=lambda x: x[0])[1]
+
+    def backtracking_next_move(self, position, depth=3):
+        """Implementa a heurística Backtracking com profundidade limitada"""
+        valid_moves = self.get_valid_moves(position)
+        if not valid_moves:
+            return None
+        
+        best_move = None
+        best_score = -1
+        
+        for move in valid_moves:
+            self.board[move[0], move[1]] = 1
+            score = self._explore_moves(move, depth-1)
+            self.board[move[0], move[1]] = 0
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+        
+        return best_move
+
+    def _explore_moves(self, position, depth):
+        """Função auxiliar para backtracking"""
+        if depth == 0:
+            return len(self.get_valid_moves(position))
+        
+        valid_moves = self.get_valid_moves(position)
+        if not valid_moves:
+            return 0
+        
+        max_score = 0
+        for move in valid_moves:
+            self.board[move[0], move[1]] = 1
+            score = self._explore_moves(move, depth-1)
+            self.board[move[0], move[1]] = 0
+            max_score = max(max_score, score)
+        
+        return max_score + len(valid_moves)
+
+    def divide_conquer_next_move(self, position):
+        """Implementa a heurística Divide & Conquer"""
+        valid_moves = self.get_valid_moves(position)
+        if not valid_moves:
+            return None
+        
+        # Divide o tabuleiro em quadrantes
+        mid_row = self.board_size // 2
+        mid_col = self.board_size // 2
+        
+        next_moves = []
+        for move in valid_moves:
+            # Determina o quadrante do movimento
+            quadrant = 0
+            if move[0] < mid_row:
+                if move[1] < mid_col:
+                    quadrant = 1
+                else:
+                    quadrant = 2
+            else:
+                if move[1] < mid_col:
+                    quadrant = 3
+                else:
+                    quadrant = 4
+            
+            # Calcula score baseado no quadrante menos visitado
+            quadrant_visits = np.sum(self.board[
+                (mid_row if quadrant > 2 else 0):(mid_row if quadrant <= 2 else self.board_size),
+                (mid_col if quadrant % 2 == 0 else 0):(mid_col if quadrant % 2 == 1 else self.board_size)
+            ])
+            
+            accessibility = len(self.get_valid_moves(move))
+            score = accessibility * (1 + 1/quadrant_visits if quadrant_visits > 0 else 2)
+            next_moves.append((score, move))
+        
+        return max(next_moves, key=lambda x: x[0])[1]
+    
+    def solve_knights_tour(self, start_position, heuristic="Warnsdorff"):
+        """Resolve o passeio do cavalo usando a heurística selecionada"""
         self.board = np.zeros((self.board_size, self.board_size))
         self.current_position = start_position
         self.board[start_position[0], start_position[1]] = 1
         self.moves_history = [start_position]
         
+        heuristic_functions = {
+            "Warnsdorff": self.warnsdorff_next_move,
+            "Neural": self.neural_next_move,
+            "Backtracking": self.backtracking_next_move,
+            "Divide&Conquer": self.divide_conquer_next_move
+        }
+        
+        next_move_func = heuristic_functions.get(heuristic, self.warnsdorff_next_move)
+        
         while len(self.moves_history) < self.board_size * self.board_size:
-            next_move = self.warnsdorff_next_move(self.current_position)
+            next_move = next_move_func(self.current_position)
             if next_move is None:
                 break
             
@@ -158,6 +263,11 @@ def main():
     """)
     
     # Interface lateral
+    st.sidebar.title("Projeto de heurísticas para o passeio do cavalo")
+    st.sidebar.markdown("[Desenvolvido por Matheus Bernardes](https://portfolio-matheusbernardes.netlify.app/)")
+    st.sidebar.markdown("[GitHub](www.github.com/matheusbnas)")
+    st.sidebar.markdown("[LinkedIn](www.linkedin.com/in/matheusbnas)") 
+    print()
     st.sidebar.header("Configurações")
     
     # Atualiza o diagrama explicativo das coordenadas
@@ -192,13 +302,12 @@ def main():
     animation_speed = st.sidebar.slider("Velocidade da animação (ms)", 100, 1000, 500)
     
     if st.sidebar.button("Iniciar Passeio do Cavalo"):
-        knight_tour = AnimatedKnightTour()
+        knight_tour = AnimatedKnightTour(board_size)  # Pass board size
+        start_position = (7 - start_y, start_x)
+        moves = knight_tour.solve_knights_tour(start_position, heuristic)
         
-        # Converte as coordenadas para o sistema interno do tabuleiro
-        start_position = (7 - start_y, start_x)  # Inverte o Y para corresponder ao tabuleiro
-        
-        # Resolve o passeio
-        moves = knight_tour.solve_knights_tour(start_position)
+        # Encontra casas não alcançáveis
+        unreachable = knight_tour.find_unreachable_squares()
         
         # Atualiza o texto mostrando a posição escolhida no formato de xadrez
         chess_column = chr(65 + start_x)  # Converte 0-7 para A-H
@@ -208,58 +317,71 @@ def main():
         # Cria as imagens para animação
         frames = knight_tour.create_animation(moves)
         
-        # Métricas
-        col1, col2 = st.columns(2)
+        # Métricas em 3 colunas
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Casas visitadas", len(moves))
         with col2:
-            coverage = (len(moves) / (knight_tour.board_size ** 2)) * 100
+            coverage = (len(moves) / (board_size ** 2)) * 100
             st.metric("Cobertura do tabuleiro", f"{coverage:.1f}%")
+        with col3:
+            st.metric("Casas não alcançáveis", len(unreachable))
         
         # Mostra a animação
         st.subheader("Animação do Passeio do Cavalo")
         placeholder = st.empty()
         
-        while True:
-            for frame in frames:
-                placeholder.image(frame)
-                time.sleep(animation_speed / 1000)
-                
-            time.sleep(1)
+        # Executa a animação uma única vez
+        for frame in frames:
+            placeholder.image(frame)
+            time.sleep(animation_speed / 1000)
         
-        # Após a animação, mostra o resumo das heurísticas
-        st.markdown("""
-        ### Explicação das Heurísticas
+        # Mostra o resultado final
+        st.subheader("Resultado Final do Passeio")
+        st.image(frames[-1])  # Mostra última imagem
         
-        1. **Heurística de Warnsdorff (1823)**
-           - Escolhe sempre o próximo movimento que tem o menor número de saídas disponíveis
-           - Simples e eficiente, mas pode falhar em alguns casos
-           - Boa para tabuleiros menores
+        # Adiciona explicação do resultado
+        st.markdown(f"""
+        ### Análise do Resultado
         
-        2. **Heurística Neural**
-           - Usa aprendizado de máquina para escolher os melhores movimentos
-           - Mais adaptável a diferentes tamanhos de tabuleiro
-           - Requer treinamento prévio
+        - **Total de movimentos:** {len(moves)}
+        - **Casas não visitadas:** {board_size * board_size - len(moves)}
+        - **Porcentagem de cobertura:** {coverage:.1f}%
+        - **Casas não alcançáveis:** {len(unreachable)}
         
-        3. **Heurística Backtracking**
-           - Tenta todos os caminhos possíveis
-           - Garante encontrar uma solução se existir
-           - Mais lento em tabuleiros grandes
-        
-        4. **Heurística Divide&Conquer**
-           - Divide o tabuleiro em regiões menores
-           - Resolve cada região separadamente
-           - Bom para tabuleiros grandes
-        
-        ### Estatísticas do Passeio
-        - **Casas visitadas:** {len(moves)} de {board_size * board_size}
-        - **Casas não alcançáveis:** {len(knight_tour.unreachable_squares)}
-        - **Motivo das falhas:** Casas bloqueadas por movimentos anteriores
+        #### Detalhes da Heurística Utilizada: {heuristic}
+        {get_heuristic_explanation(heuristic)}
         """)
-        
-        # Mostra mapa de calor das casas mais visitadas
-        #if st.checkbox("Mostrar mapa de calor de movimento"):
-            # Código para gerar mapa de calor
+
+def get_heuristic_explanation(heuristic):
+    """Retorna explicação detalhada da heurística utilizada"""
+    explanations = {
+        "Warnsdorff": """
+        A regra de Warnsdorff escolhe sempre o movimento que tem o menor número de saídas disponíveis.
+        - A ideia é a de atacar primeiro as restrições mais severas, deixando para mais tarde as casas que poderão ser mais facilmente visitadas.
+        - Vantagem: Simples e eficiente
+        - Desvantagem: Pode falhar em tabuleiros maiores
+        """,
+        "Neural": """
+        A heurística Neural considera múltiplos fatores:
+        - Acessibilidade da próxima posição
+        - Distância do centro
+        - Distância das bordas
+        """,
+        "Backtracking": """
+        O Backtracking explora possíveis caminhos com profundidade limitada:
+        - Analisa movimentos futuros
+        - Escolhe o caminho com mais opções
+        - Mais lento, mas mais preciso
+        """,
+        "Divide&Conquer": """
+        Divide&Conquer separa o tabuleiro em quadrantes:
+        - Balanceia movimentos entre regiões
+        - Tenta manter opções em todas as áreas
+        - Bom para tabuleiros grandes
+        """
+    }
+    return explanations.get(heuristic, "Explicação não disponível")
 
 if __name__ == "__main__":
     main()
