@@ -1,92 +1,186 @@
-# Projeto Passeio do Cavalo – Heurística de Warnsdorff e Algoritmos Genéticos
+# Projeto Passeio do Cavalo – Múltiplas Heurísticas
 
-Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando a heurística de Warnsdorff. Além disso, o repositório reúne estudos e implementações complementares que exploram abordagens evolutivas (como algoritmos genéticos) para o mesmo problema.
+Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando diferentes heurísticas, incluindo Warnsdorff, Neural, Backtracking, Divide & Conquer e AML (Accessibility and Move Length).
 
-## Visão Geral
+## Ferramentas Utilizadas
 
-- **Objetivo:** Demonstrar o uso da heurística de Warnsdorff para obter um passeio aberto do cavalo em tabuleiros quadrados, iniciando a partir de qualquer casa escolhida. Adicionalmente, o projeto explora abordagens alternativas baseadas em algoritmos genéticos, conforme apresentados nos PDFs incluídos.
-- **Abordagem Principal:**  
-  - **Warnsdorff:** A heurística determina o próximo movimento do cavalo escolhendo a casa com o menor número de movimentos válidos subsequentes. Essa estratégia visa evitar “becos sem saída” ao priorizar casas mais restritas.  
-  - **Algoritmos Genéticos:** Em arquivos complementares, são apresentados estudos e implementações que aplicam técnicas evolutivas ao problema do passeio do cavalo, demonstrando a diversidade de abordagens de busca e otimização para este desafio clássico.
-  
-## Estrutura do Projeto
+- Python 3.8+
+- Streamlit
+- Numpy
+- Matplotlib
+- Pandas
+- Pillow (PIL)
 
-- **Código Fonte:**  
-  - `chess_algoritmosgeneticos.py` – Contém a implementação interativa (usando Streamlit) do passeio do cavalo, com a visualização do tabuleiro e animação do percurso utilizando a heurística de Warnsdorff.  
+## Como Instalar
 
-
-- **Documentação e Estudos Teóricos:**  
-  - `knightstour-SBPO.pdf` – Apresenta um estudo detalhado sobre heurísticas eficientes para o passeio aberto do cavalo a partir de casas arbitrárias, discutindo refinamentos na heurística de Warnsdorff.  
-  
-  - `mariaclicia,+4_Aplicação+de+Algoritmos+Genéticos+V.22.pdf` – Aborda a aplicação de algoritmos genéticos ao problema do passeio do cavalo, explicando a evolução dos indivíduos e o funcionamento dos operadores genéticos.
-    
-  - `algoritmogenetico-encoinfo2003.pdf` – Descreve uma implementação de algoritmo genético para o mesmo problema, ressaltando os conceitos de avaliação, mutação, cruzamento e seleção.
-    
-
-## Requisitos
-
-- **Python 3.7+**
-- **Bibliotecas Python:**  
-  - `streamlit`
-  - `numpy`
-  - `matplotlib`
-  - `PIL` (Pillow)
-  
-Para instalar as dependências, execute:
+1. Clone o repositório:
 ```bash
-pip install streamlit numpy matplotlib pillow
+git clone https://github.com/seu-usuario/trabalho_OP_PUC.git
+cd trabalho_OP_PUC
+```
+
+2. Instale as dependências:
+```bash
+pip install -r requirements.txt
 ```
 
 ## Como Executar
 
-1. Clone o repositório para sua máquina local.
-2. Instale as dependências conforme descrito na seção de requisitos.
-3. Execute o aplicativo utilizando o Streamlit:
-   ```bash
-   streamlit run chess_algoritmosgeneticos.py
-   ```
-4. Na interface do aplicativo, escolha a posição inicial (coordenadas X e Y) e ajuste a velocidade da animação conforme desejado. Em seguida, clique em "Iniciar Passeio do Cavalo" para visualizar o percurso.
+1. No terminal, navegue até a pasta do projeto:
+```bash
+cd trabalho_OP_PUC
+```
 
-## Explicação Detalhada – Heurística de Warnsdorff
+2. Execute o aplicativo Streamlit:
+```bash
+streamlit run chess_algoritmosgeneticos.py
+```
 
-### Contexto e Problema
+3. O navegador abrirá automaticamente com a interface do projeto
 
-O problema do passeio do cavalo consiste em encontrar uma sequência de movimentos (passos em “L”) de modo que o cavalo visite cada casa de um tabuleiro exatamente uma vez. Trata-se de um problema clássico de caminho hamiltoniano em grafos, onde cada vértice (casa) é conectado aos outros através dos movimentos válidos do cavalo.
+## Estrutura do Projeto
 
-### A Heurística de Warnsdorff
+```
+trabalho_OP_PUC/
+│
+├── chess_algoritmosgeneticos.py   # Arquivo principal
+├── requirements.txt               # Dependências do projeto
+└── README.md                      # Documentação
+```
 
-Desenvolvida por H. C. Warnsdorff em 1823, a heurística baseia-se em uma estratégia gulosa: em cada movimento, o cavalo se desloca para a casa que tem o menor número de opções (movimentos válidos) para continuar o percurso. A ideia central é “atacar” as restrições antes que elas se agravem, evitando que o cavalo se isole em uma posição sem saída.
+## Heurísticas Implementadas
 
-#### Passos da Heurística:
+### 1. Heurística de Warnsdorff
+- **Princípio**: Escolhe o movimento que tem o menor número de saídas disponíveis
+- **Funcionamento**: Em cada passo, o cavalo se move para a casa que oferece o menor número de movimentos futuros
+- **Vantagens**: 
+  - Simples e eficiente
+  - Rápida execução
+- **Desvantagens**: 
+  - Pode falhar em tabuleiros maiores
+  - Sensível à posição inicial
 
-1. **Listar Movimentos Válidos:**  
-   A partir da posição atual do cavalo, identifica-se todas as casas que ainda não foram visitadas e que podem ser alcançadas com um movimento em “L”.  
-   (Conforme implementado em `get_valid_moves` no código.)
-   
-2. **Avaliação dos Próximos Movimentos:**  
-   Para cada casa candidata, calcula-se o número de movimentos válidos que seriam possíveis se o cavalo se deslocasse para lá. Essa contagem é uma medida do “grau” da casa.
-   
-3. **Escolha do Movimento:**  
-   Seleciona-se a casa com o menor grau – ou seja, a casa que oferece menos alternativas de continuação. Essa escolha tende a reduzir a probabilidade de o cavalo ficar preso sem opções futuras.  
-   (A função `warnsdorff_next_move` no código exemplifica esse processo.)
-   
-4. **Iteração até Conclusão:**  
-   O algoritmo repete o processo até que todas as casas tenham sido visitadas ou até que nenhum movimento válido seja encontrado.
+### 2. Heurística Neural
+- **Princípio**: Utiliza múltiplos fatores para tomar decisões
+- **Características consideradas**:
+  - Acessibilidade da próxima posição
+  - Distância do centro do tabuleiro
+  - Distância das bordas
+- **Vantagens**:
+  - Boa adaptabilidade
+  - Considera múltiplos fatores
+- **Desvantagens**:
+  - Mais complexa computacionalmente
+  - Performance intermediária
 
-### Vantagens e Limitações
+### 3. Heurística Backtracking
+- **Princípio**: Explora recursivamente todos os caminhos possíveis
+- **Funcionamento**:
+  - Testa diferentes sequências de movimentos
+  - Retrocede quando encontra um caminho sem saída
+- **Vantagens**:
+  - Garante encontrar solução se existir
+  - Solução ótima quando encontrada
+- **Desvantagens**:
+  - Tempo de execução exponencial
+  - Inviável para tabuleiros grandes
 
-- **Vantagens:**  
-  - **Simplicidade e Eficiência:** A heurística é fácil de implementar e o tempo de execução cresce linearmente com o número de casas.
-  - **Aplicabilidade em Vários Tamanhos:** Embora o método seja muito eficaz para tabuleiros convencionais (8×8), estudos estendidos mostram seu funcionamento para tabuleiros n×n com n variando a partir de casas arbitrárias.
+### 4. Heurística Divide & Conquer
+- **Princípio**: Divide o tabuleiro em quadrantes
+- **Funcionamento**:
+  - Balanceia movimentos entre diferentes regiões
+  - Tenta manter opções em todas as áreas
+- **Vantagens**:
+  - Eficiente para tabuleiros grandes
+  - Boa distribuição de movimento
+- **Desvantagens**:
+  - Pode ter problemas nas fronteiras
+  - Performance pode variar
 
-- **Limitações:**  
-  - **Casos de Falha:** Em alguns tabuleiros ou a partir de determinadas posições iniciais, a heurística pode não produzir um passeio completo, devido à natureza gulosa do método.
-  - **Sensibilidade a Simetrias:** Algumas versões, como as discutidas no artigo de Álvarez-Martínez e Lázaro, podem apresentar resultados divergentes quando iniciadas de casas simétricas. Refinamentos que consideram a divisão do tabuleiro em octantes têm sido propostos para superar essa questão.
+### 5. Heurística AML (Accessibility and Move Length)
+- **Princípio**: Combina múltiplos critérios hierárquicos
+- **Critérios em ordem de prioridade**:
+  1. Regra de Warnsdorff (acessibilidade)
+  2. Proximidade aos cantos do tabuleiro
+  3. Proximidade às bordas
+  4. Prioridade baseada na posição relativa
+- **Vantagens**:
+  - Muito consistente
+  - Boa performance em diferentes tamanhos
+- **Desvantagens**:
+  - Mais complexa de implementar
+  - Pode ser mais lenta que Warnsdorff
 
-### Abordagens Complementares
+## Funcionalidades Adicionadas
 
-Além da heurística de Warnsdorff, o projeto inclui referências a abordagens baseadas em algoritmos genéticos, onde uma população de soluções (representadas por cromossomos) evolui ao longo de gerações para maximizar a cobertura do tabuleiro. Esses métodos, embora geralmente mais lentos, oferecem um paradigma de busca global que pode ser útil quando a heurística gulosa não encontra uma solução.
+- Suporte para tabuleiros de diferentes tamanhos (8x8 até 16x16)
+- Visualização de casas não alcançáveis
+- Análise comparativa entre heurísticas
+- Métricas de desempenho:
+  - Casas visitadas
+  - Cobertura do tabuleiro
+  - Tempo de execução
+  - Casas não alcançáveis
 
-## Conclusão
+## Como Usar as Diferentes Heurísticas
 
-Este projeto demonstra de forma interativa como a heurística de Warnsdorff pode ser aplicada para resolver o clássico problema do passeio do cavalo a partir de qualquer casa inicial em tabuleiros quadrados. Ao mesmo tempo, os estudos presentes nos PDFs fornecem um panorama mais amplo das abordagens – tanto determinísticas quanto evolutivas – que podem ser utilizadas para explorar este desafio.
+1. Selecione o tamanho do tabuleiro (8-16)
+2. Escolha a heurística desejada
+3. Defina a posição inicial do cavalo
+4. Ajuste a velocidade da animação
+5. Clique em "Iniciar Passeio do Cavalo"
+
+## Funcionalidades da Interface
+
+- **Sidebar**: 
+  - Seleção do tamanho do tabuleiro
+  - Escolha da heurística
+  - Coordenadas iniciais (X,Y)
+  - Controle de velocidade da animação
+
+- **Main Area**:
+  - Visualização do tabuleiro
+  - Animação do movimento do cavalo
+  - Métricas de desempenho
+  - Análise comparativa das heurísticas
+
+## Análise Comparativa
+
+O projeto inclui uma função de análise comparativa que permite:
+- Comparar o desempenho de todas as heurísticas
+- Visualizar estatísticas detalhadas
+- Identificar a melhor heurística para cada caso
+- Analisar cobertura e tempo de execução
+
+## Desenvolvimento
+
+Para contribuir com o projeto:
+
+1. Faça um fork do repositório
+2. Crie uma branch para sua feature:
+```bash
+git checkout -b feature/nova-feature
+```
+3. Faça suas alterações e commit:
+```bash
+git commit -m "Adiciona nova feature"
+```
+4. Push para o repositório:
+```bash
+git push origin feature/nova-feature
+```
+5. Crie um Pull Request
+
+## Troubleshooting
+
+- Se encontrar erro de importação de módulos, verifique se todas as dependências foram instaladas
+- Para problemas com o Streamlit, tente reiniciar o servidor
+- Em caso de erros de memória com tabuleiros grandes, ajuste o tamanho máximo
+
+## Contribuições e Melhorias
+
+- Adição de novas heurísticas
+- Suporte para tabuleiros maiores
+- Interface interativa aprimorada
+- Análise comparativa detalhada
+- Visualização de casas não alcançáveis
