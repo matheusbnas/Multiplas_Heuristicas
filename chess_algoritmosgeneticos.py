@@ -128,7 +128,13 @@ class AnimatedKnightTour:
             edge_distance = min(move[0], move[1], self.board_size-1-move[0], self.board_size-1-move[1])
             
             # Simula um score neural (simplificado)
-            score = accessibility * 0.5 + edge_distance * 0.3 + (1/center_distance) * 0.2
+            # Adiciona um pequeno valor para evitar divisão por zero
+            score = accessibility * 0.5 + edge_distance * 0.3
+            if center_distance > 0:
+                score += (1/center_distance) * 0.2
+            else:
+                score += 0.2  # Caso esteja no centro, adiciona valor máximo
+                
             next_moves.append((score, move))
         
         return max(next_moves, key=lambda x: x[0])[1]
@@ -319,6 +325,41 @@ def analyze_heuristics(board_size=8, start_position=(0,0)):
     
     return results
 
+def get_heuristic_conclusion(df):
+    """Gera conclusão dinâmica baseada nos resultados reais"""
+    best_coverage = df["Cobertura (%)"].max()
+    best_heuristic = df["Cobertura (%)"].idxmax()
+    fastest = df["Tempo (s)"].idxmin()
+    least_unreachable = df["Casas Não Alcançáveis"].idxmin()
+    
+    # Calcula score geral (normalizado)
+    df_normalized = df.copy()
+    df_normalized["Cobertura (%)"] = df_normalized["Cobertura (%)"] / df_normalized["Cobertura (%)"].max()
+    df_normalized["Tempo (s)"] = 1 - (df_normalized["Tempo (s)"] / df_normalized["Tempo (s)"].max())
+    df_normalized["Casas Não Alcançáveis"] = 1 - (df_normalized["Casas Não Alcançáveis"] / df_normalized["Casas Não Alcançáveis"].max())
+    
+    overall_score = df_normalized.mean(axis=1)
+    best_overall = overall_score.idxmax()
+    
+    conclusion = f"""
+        3. **Conclusão:**
+        Para esta instância específica do problema do passeio do cavalo:
+        
+        - **Melhor cobertura:** {best_heuristic} ({best_coverage:.1f}%)
+        - **Mais rápida:** {fastest}
+        - **Menor número de casas não alcançáveis:** {least_unreachable}
+        - **Melhor balanço geral:** {best_overall}
+        
+        A heurística {best_overall} mostrou-se mais eficiente neste caso por:
+        - {"Maior cobertura do tabuleiro" if best_overall == best_heuristic else "Boa cobertura do tabuleiro"}
+        - {"Melhor tempo de execução" if best_overall == fastest else "Tempo de execução aceitável"}
+        - {"Menor número de casas não alcançáveis" if best_overall == least_unreachable else "Número aceitável de casas não alcançáveis"}
+        
+        Vale notar que o desempenho das heurísticas pode variar dependendo do tamanho do tabuleiro
+        e da posição inicial escolhida."""
+    
+    return conclusion
+
 def main():
     st.title("Passeio do Cavalo Animado")
     
@@ -405,10 +446,6 @@ def main():
             placeholder.image(frame)
             time.sleep(animation_speed / 1000)
         
-        # Mostra o resultado final
-        st.subheader("Resultado Final do Passeio")
-        st.image(frames[-1])  # Mostra última imagem
-        
         # Adiciona explicação do resultado
         st.markdown(f"""
         ### Análise do Resultado
@@ -432,13 +469,10 @@ def main():
         st.table(df)
         
         # Análise dos resultados
-        best_coverage = df["Cobertura (%)"].max()
-        best_heuristic = df["Cobertura (%)"].idxmax()
-        
         st.markdown(f"""
         ### Análise dos Resultados:
         
-        1. **Melhor Cobertura:** {best_heuristic} com {best_coverage:.1f}%
+        1. **Melhor Cobertura:** {df["Cobertura (%)"].idxmax()} com {df["Cobertura (%)"].max():.1f}%
         
         2. **Comparação das Heurísticas:**
         
@@ -464,18 +498,10 @@ def main():
         
         - **Divide&Conquer:**
             - Boa para tabuleiros grandes
-            - Performance inconsistente
+            - Performance pode variar
             - Pode ter problemas nas fronteiras dos quadrantes
         
-        3. **Conclusão:**
-        Para o problema do passeio do cavalo, a heurística AML mostrou-se mais eficiente por:
-        - Combinar critérios de diferentes heurísticas
-        - Manter boa performance em diferentes tamanhos de tabuleiro
-        - Ter melhor equilíbrio entre cobertura e tempo de execução
-        
-        A heurística de Backtracking, embora garanta encontrar uma solução completa se existir,
-        não é prática para este problema devido ao seu alto custo computacional e tempo de execução
-        excessivo, especialmente em tabuleiros maiores.
+        {get_heuristic_conclusion(df)}
         """)
 
 def get_heuristic_explanation(heuristic):
