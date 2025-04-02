@@ -33,7 +33,7 @@ cd trabalho_OP_PUC
 
 2. Execute o aplicativo Streamlit:
 ```bash
-streamlit run chess_algoritmosgeneticos.py
+streamlit run chess_heuristicas.py
 ```
 
 3. O navegador abrirá automaticamente com a interface do projeto
@@ -43,7 +43,7 @@ streamlit run chess_algoritmosgeneticos.py
 ```
 trabalho_OP_PUC/
 │
-├── chess_algoritmosgeneticos.py   # Arquivo principal
+├── chess_heuristicas.py   # Arquivo principal
 ├── requirements.txt               # Dependências do projeto
 └── README.md                      # Documentação
 ```
