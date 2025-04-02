@@ -8,11 +8,12 @@ from PIL import Image
 import time
 
 class AnimatedKnightTour:
-    def __init__(self):
-        self.board_size = 8
+    def __init__(self, board_size=8):
+        self.board_size = board_size
         self.board = np.zeros((self.board_size, self.board_size))
         self.moves_history = []
         self.current_position = None
+        self.unreachable_squares = []  # Novas casas não alcançáveis
         
     def create_board_image(self, current_pos=None, path=None):
         """Cria uma única imagem do tabuleiro"""
@@ -53,6 +54,11 @@ class AnimatedKnightTour:
             # Converte as coordenadas para o sistema do tabuleiro
             ax.text(y + 0.5, (self.board_size - 1 - x) + 0.5, '♞', 
                    ha='center', va='center', color='black', fontsize=40)
+        
+        # Marca as casas não alcançáveis em vermelho
+        for x, y in self.unreachable_squares:
+            ax.add_patch(Rectangle((y, self.board_size - 1 - x), 1, 1, 
+                        facecolor='red', alpha=0.3))
         
         ax.set_xlim(-0.5, self.board_size + 0.5)
         ax.set_ylim(-0.5, self.board_size + 0.5)
@@ -123,6 +129,22 @@ class AnimatedKnightTour:
         
         return self.moves_history
 
+    def find_unreachable_squares(self):
+        """Identifica as casas não visitadas e verifica se são alcançáveis"""
+        visited = set((x, y) for x, y in self.moves_history)
+        unreachable = []
+        
+        for i in range(self.board_size):
+            for j in range(self.board_size):
+                if (i, j) not in visited:
+                    # Verifica se todas as casas vizinhas já foram visitadas
+                    moves = self.get_valid_moves((i, j))
+                    if not moves or all((x, y) in visited for x, y in moves):
+                        unreachable.append((i, j))
+        
+        self.unreachable_squares = unreachable
+        return unreachable
+
 def main():
     st.title("Passeio do Cavalo Animado")
     
@@ -156,8 +178,17 @@ def main():
     """
     st.sidebar.markdown(coord_explanation)
     
-    start_x = st.sidebar.selectbox("Posição inicial X (coluna):", range(8))
-    start_y = st.sidebar.selectbox("Posição inicial Y (linha):", range(8))
+    # Adiciona seleção de tamanho do tabuleiro
+    board_size = st.sidebar.slider("Tamanho do tabuleiro:", min_value=8, max_value=16, value=8)
+    
+    # Adiciona seleção de heurística
+    heuristic = st.sidebar.selectbox(
+        "Escolha a heurística:",
+        ["Warnsdorff", "Neural", "Backtracking", "Divide&Conquer"]
+    )
+    
+    start_x = st.sidebar.selectbox("Posição inicial X (coluna):", range(board_size))
+    start_y = st.sidebar.selectbox("Posição inicial Y (linha):", range(board_size))
     animation_speed = st.sidebar.slider("Velocidade da animação (ms)", 100, 1000, 500)
     
     if st.sidebar.button("Iniciar Passeio do Cavalo"):
@@ -196,5 +227,39 @@ def main():
                 
             time.sleep(1)
         
+        # Após a animação, mostra o resumo das heurísticas
+        st.markdown("""
+        ### Explicação das Heurísticas
+        
+        1. **Heurística de Warnsdorff (1823)**
+           - Escolhe sempre o próximo movimento que tem o menor número de saídas disponíveis
+           - Simples e eficiente, mas pode falhar em alguns casos
+           - Boa para tabuleiros menores
+        
+        2. **Heurística Neural**
+           - Usa aprendizado de máquina para escolher os melhores movimentos
+           - Mais adaptável a diferentes tamanhos de tabuleiro
+           - Requer treinamento prévio
+        
+        3. **Heurística Backtracking**
+           - Tenta todos os caminhos possíveis
+           - Garante encontrar uma solução se existir
+           - Mais lento em tabuleiros grandes
+        
+        4. **Heurística Divide&Conquer**
+           - Divide o tabuleiro em regiões menores
+           - Resolve cada região separadamente
+           - Bom para tabuleiros grandes
+        
+        ### Estatísticas do Passeio
+        - **Casas visitadas:** {len(moves)} de {board_size * board_size}
+        - **Casas não alcançáveis:** {len(knight_tour.unreachable_squares)}
+        - **Motivo das falhas:** Casas bloqueadas por movimentos anteriores
+        """)
+        
+        # Mostra mapa de calor das casas mais visitadas
+        #if st.checkbox("Mostrar mapa de calor de movimento"):
+            # Código para gerar mapa de calor
+
 if __name__ == "__main__":
     main()
