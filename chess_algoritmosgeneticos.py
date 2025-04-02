@@ -22,19 +22,20 @@ class AnimatedKnightTour:
         for i in range(self.board_size):
             for j in range(self.board_size):
                 color = 'white' if (i + j) % 2 == 0 else 'lightgray'
-                ax.add_patch(Rectangle((j, self.board_size - 1 - i), 1, 1, facecolor=color))
+                # Inverte o Y para desenhar o tabuleiro corretamente
+                ax.add_patch(Rectangle((j, i), 1, 1, facecolor=color))
                 
                 # Adiciona letras (A-H) na parte inferior
-                if i == self.board_size - 1:
+                if i == 0:  # Primeira linha
                     ax.text(j + 0.5, -0.3, chr(65 + j), ha='center', va='center')
                 # Adiciona números (1-8) na lateral
                 if j == 0:
-                    ax.text(-0.3, self.board_size - 1 - i + 0.5, str(i + 1), ha='center', va='center')
+                    ax.text(-0.3, i + 0.5, str(1 + i), ha='center', va='center')
         
         # Desenha o caminho até a posição atual
         if path and len(path) > 1:
             path_array = np.array(path)
-            # Inverte as coordenadas Y para corresponder ao sistema correto
+            # Converte as coordenadas para o sistema do tabuleiro
             plot_path = np.column_stack((path_array[:, 1], self.board_size - 1 - path_array[:, 0]))
             ax.plot(plot_path[:, 0] + 0.5, plot_path[:, 1] + 0.5, 
                    'b-', linewidth=2, alpha=0.5)
@@ -42,14 +43,15 @@ class AnimatedKnightTour:
         # Marca as posições já visitadas
         if path:
             for idx, (x, y) in enumerate(path):
-                # Inverte a coordenada Y para corresponder ao sistema correto
+                # Converte as coordenadas para o sistema do tabuleiro
                 ax.text(y + 0.5, (self.board_size - 1 - x) + 0.5, str(idx + 1), 
                        ha='center', va='center', fontsize=12)
         
         # Desenha o cavalo na posição atual
         if current_pos:
-            # Inverte a coordenada Y para corresponder ao sistema correto
-            ax.text(current_pos[1] + 0.5, (self.board_size - 1 - current_pos[0]) + 0.5, '♞', 
+            x, y = current_pos
+            # Converte as coordenadas para o sistema do tabuleiro
+            ax.text(y + 0.5, (self.board_size - 1 - x) + 0.5, '♞', 
                    ha='center', va='center', color='black', fontsize=40)
         
         ax.set_xlim(-0.5, self.board_size + 0.5)
@@ -161,9 +163,8 @@ def main():
     if st.sidebar.button("Iniciar Passeio do Cavalo"):
         knight_tour = AnimatedKnightTour()
         
-        # Ajusta a conversão de coordenadas para corresponder ao diagrama
-        # Agora y=0 corresponde à primeira linha (A1-H1)
-        start_position = (start_y, start_x)
+        # Converte as coordenadas para o sistema interno do tabuleiro
+        start_position = (7 - start_y, start_x)  # Inverte o Y para corresponder ao tabuleiro
         
         # Resolve o passeio
         moves = knight_tour.solve_knights_tour(start_position)
