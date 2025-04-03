@@ -20,54 +20,53 @@ class AnimatedKnightTour:
         """Cria uma única imagem do tabuleiro"""
         fig, ax = plt.subplots(figsize=(12, 12))
         
-        # Desenha o tabuleiro com letras e números nas bordas
+        # Desenha o tabuleiro base
         for i in range(self.board_size):
             for j in range(self.board_size):
                 color = 'white' if (i + j) % 2 == 0 else 'lightgray'
-                # Inverte o Y para desenhar o tabuleiro corretamente
                 ax.add_patch(Rectangle((j, i), 1, 1, facecolor=color))
                 
-                # Adiciona letras na parte inferior
+                # Adiciona letras e números nas bordas
                 if i == 0:
                     ax.text(j + 0.5, -0.3, chr(65 + j) if j < 26 else f'A{j-25}', 
                            ha='center', va='center', fontsize=8)
-                # Adiciona números na lateral
                 if j == 0:
                     ax.text(-0.3, i + 0.5, str(self.board_size - i), 
                            ha='center', va='center', fontsize=8)
         
-        # Desenha o caminho até a posição atual
+        # Se é a última imagem, marca as casas não visitadas em vermelho
+        if path and len(path) == len(self.moves_history):
+            visited = set((x, y) for x, y in path)
+            for i in range(self.board_size):
+                for j in range(self.board_size):
+                    if (i, j) not in visited:
+                        ax.add_patch(Rectangle((j, i), 1, 1, 
+                                    facecolor='red', alpha=0.3))
+        
+        # Desenha o caminho percorrido
         if path and len(path) > 1:
             path_array = np.array(path)
-            # Converte as coordenadas para o sistema do tabuleiro
-            plot_path = np.column_stack((path_array[:, 1], self.board_size - 1 - path_array[:, 0]))
+            plot_path = np.column_stack((path_array[:, 1], path_array[:, 0]))
             ax.plot(plot_path[:, 0] + 0.5, plot_path[:, 1] + 0.5, 
                    'b-', linewidth=2, alpha=0.5)
         
-        # Marca as posições já visitadas
+        # Numera as casas visitadas
         if path:
             for idx, (x, y) in enumerate(path):
-                # Converte as coordenadas para o sistema do tabuleiro
-                ax.text(y + 0.5, (self.board_size - 1 - x) + 0.5, str(idx + 1), 
+                ax.text(y + 0.5, x + 0.5, str(idx + 1), 
                        ha='center', va='center', fontsize=12)
         
         # Desenha o cavalo na posição atual
         if current_pos:
             x, y = current_pos
-            # Converte as coordenadas para o sistema do tabuleiro
-            ax.text(y + 0.5, (self.board_size - 1 - x) + 0.5, '♞', 
+            ax.text(y + 0.5, x + 0.5, '♞', 
                    ha='center', va='center', color='black', fontsize=40)
-        
-        # Marca as casas não alcançáveis em vermelho
-        for x, y in self.unreachable_squares:
-            ax.add_patch(Rectangle((y, self.board_size - 1 - x), 1, 1, 
-                        facecolor='red', alpha=0.3))
         
         ax.set_xlim(-0.5, self.board_size + 0.5)
         ax.set_ylim(-0.5, self.board_size + 0.5)
         plt.axis('off')
         
-        # Converte a figura para imagem
+        # Converte para imagem
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
         plt.close()
@@ -290,17 +289,15 @@ class AnimatedKnightTour:
         return self.moves_history
 
     def find_unreachable_squares(self):
-        """Identifica as casas não visitadas e verifica se são alcançáveis"""
+        """Identifica todas as casas não visitadas no tabuleiro"""
         visited = set((x, y) for x, y in self.moves_history)
         unreachable = []
         
+        # Verifica todas as casas do tabuleiro
         for i in range(self.board_size):
             for j in range(self.board_size):
                 if (i, j) not in visited:
-                    # Verifica se todas as casas vizinhas já foram visitadas
-                    moves = self.get_valid_moves((i, j))
-                    if not moves or all((x, y) in visited for x, y in moves):
-                        unreachable.append((i, j))
+                    unreachable.append((i, j))
         
         self.unreachable_squares = unreachable
         return unreachable
@@ -412,12 +409,26 @@ def main():
     animation_speed = st.sidebar.slider("Velocidade da animação (ms)", 100, 1000, 500)
     
     if st.sidebar.button("Iniciar Passeio do Cavalo"):
-        knight_tour = AnimatedKnightTour(board_size)  # Pass board size
+        knight_tour = AnimatedKnightTour(board_size)
         start_position = (7 - start_y, start_x)
         moves = knight_tour.solve_knights_tour(start_position, heuristic)
         
         # Encontra casas não alcançáveis
         unreachable = knight_tour.find_unreachable_squares()
+        
+        # Atualiza métricas
+        total_squares = board_size * board_size
+        visited_squares = len(moves)
+        unvisited_squares = len(unreachable)
+        coverage = (visited_squares / total_squares) * 100
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Casas visitadas", f"{visited_squares}/{total_squares}")
+        with col2:
+            st.metric("Cobertura do tabuleiro", f"{coverage:.1f}%")
+        with col3:
+            st.metric("Casas não alcançáveis", unvisited_squares)
         
         # Atualiza o texto mostrando a posição escolhida no formato de xadrez
         chess_column = chr(65 + start_x)  # Converte 0-7 para A-H
@@ -426,16 +437,6 @@ def main():
         
         # Cria as imagens para animação
         frames = knight_tour.create_animation(moves)
-        
-        # Métricas em 3 colunas
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Casas visitadas", len(moves))
-        with col2:
-            coverage = (len(moves) / (board_size ** 2)) * 100
-            st.metric("Cobertura do tabuleiro", f"{coverage:.1f}%")
-        with col3:
-            st.metric("Casas não alcançáveis", len(unreachable))
         
         # Mostra a animação
         st.subheader("Animação do Passeio do Cavalo")
@@ -446,17 +447,13 @@ def main():
             placeholder.image(frame)
             time.sleep(animation_speed / 1000)
         
-        # Adiciona explicação do resultado
+        # Adiciona explicação detalhada
         st.markdown(f"""
-        ### Análise do Resultado
-        
-        - **Total de movimentos:** {len(moves)}
-        - **Casas não visitadas:** {board_size * board_size - len(moves)}
-        - **Porcentagem de cobertura:** {coverage:.1f}%
-        - **Casas não alcançáveis:** {len(unreachable)}
-        
-        #### Detalhes da Heurística Utilizada: {heuristic}
-        {get_heuristic_explanation(heuristic)}
+        ### Estatísticas do Percurso:
+        - Total de casas no tabuleiro: {total_squares}
+        - Casas visitadas pelo cavalo: {visited_squares}
+        - Casas não alcançadas (em vermelho): {unvisited_squares}
+        - Porcentagem de cobertura: {coverage:.1f}%
         """)
 
     if st.checkbox("Mostrar análise comparativa das heurísticas"):
