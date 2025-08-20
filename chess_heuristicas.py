@@ -610,13 +610,14 @@ def main():
         st.sidebar.markdown("### Explicação da Heurística Selecionada")
         st.sidebar.markdown(get_heuristic_explanation(heuristic))
 
-    # Botão para treinar rede neural
-    if st.sidebar.button("Treinar Rede Neural"):
-        with st.spinner("Treinando rede neural... Isso pode demorar alguns minutos."):
-            knight_tour = AnimatedKnightTour(board_size)
-            knight_tour.train_neural_network(
-                num_games=500)  # Reduzido para teste
-            st.sidebar.success("Rede neural treinada com sucesso!")
+    # Botão para treinar rede neural (só aparece quando Neural está selecionado)
+    if heuristic == "Neural":
+        if st.sidebar.button("Treinar Rede Neural"):
+            with st.spinner("Treinando rede neural... Isso pode demorar alguns minutos."):
+                knight_tour = AnimatedKnightTour(board_size)
+                knight_tour.train_neural_network(
+                    num_games=500)  # Reduzido para teste
+                st.sidebar.success("Rede neural treinada com sucesso!")
 
     start_x = st.sidebar.selectbox(
         "Posição inicial X (coluna):", range(board_size))
