@@ -1,6 +1,6 @@
 # Projeto Passeio do Cavalo – Múltiplas Heurísticas
 
-Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando diferentes heurísticas, incluindo Warnsdorff, Neural, Backtracking, Divide & Conquer e AML (Accessibility and Move Length).
+Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando diferentes heurísticas, incluindo Warnsdorff, Neural e Backtracking.
 
 ## Ferramentas Utilizadas
 
@@ -14,12 +14,14 @@ Este projeto implementa uma solução interativa para o problema do passeio do c
 ## Como Instalar
 
 1. Clone o repositório:
+
 ```bash
 git clone https://github.com/seu-usuario/trabalho_OP_PUC.git
 cd trabalho_OP_PUC
 ```
 
 2. Instale as dependências:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -27,11 +29,13 @@ pip install -r requirements.txt
 ## Como Executar
 
 1. No terminal, navegue até a pasta do projeto:
+
 ```bash
 cd trabalho_OP_PUC
 ```
 
 2. Execute o aplicativo Streamlit:
+
 ```bash
 streamlit run chess_heuristicas.py
 ```
@@ -51,16 +55,18 @@ trabalho_OP_PUC/
 ## Heurísticas Implementadas
 
 ### 1. Heurística de Warnsdorff
+
 - **Princípio**: Escolhe o movimento que tem o menor número de saídas disponíveis
 - **Funcionamento**: Em cada passo, o cavalo se move para a casa que oferece o menor número de movimentos futuros
-- **Vantagens**: 
+- **Vantagens**:
   - Simples e eficiente
   - Rápida execução
-- **Desvantagens**: 
+- **Desvantagens**:
   - Pode falhar em tabuleiros maiores
   - Sensível à posição inicial
 
 ### 2. Heurística Neural
+
 - **Princípio**: Utiliza múltiplos fatores para tomar decisões
 - **Características consideradas**:
   - Acessibilidade da próxima posição
@@ -74,42 +80,19 @@ trabalho_OP_PUC/
   - Performance intermediária
 
 ### 3. Heurística Backtracking
-- **Princípio**: Explora recursivamente todos os caminhos possíveis
-- **Funcionamento**:
-  - Testa diferentes sequências de movimentos
-  - Retrocede quando encontra um caminho sem saída
-- **Vantagens**:
-  - Garante encontrar solução se existir
-  - Solução ótima quando encontrada
-- **Desvantagens**:
-  - Tempo de execução exponencial
-  - Inviável para tabuleiros grandes
 
-### 4. Heurística Divide & Conquer
-- **Princípio**: Divide o tabuleiro em quadrantes
+- **Princípio**: Explora sistematicamente possíveis caminhos com profundidade limitada
 - **Funcionamento**:
-  - Balanceia movimentos entre diferentes regiões
-  - Tenta manter opções em todas as áreas
+  - Análise profunda com profundidade de 3 níveis
+  - Considera conectividade e qualidade futura dos movimentos
+  - Simula processo complexo e demorado
 - **Vantagens**:
-  - Eficiente para tabuleiros grandes
-  - Boa distribuição de movimento
+  - Garantia de encontrar solução se existir
+  - Análise mais profunda e confiável
 - **Desvantagens**:
-  - Pode ter problemas nas fronteiras
-  - Performance pode variar
-
-### 5. Heurística AML (Accessibility and Move Length)
-- **Princípio**: Combina múltiplos critérios hierárquicos
-- **Critérios em ordem de prioridade**:
-  1. Regra de Warnsdorff (acessibilidade)
-  2. Proximidade aos cantos do tabuleiro
-  3. Proximidade às bordas
-  4. Prioridade baseada na posição relativa
-- **Vantagens**:
-  - Muito consistente
-  - Boa performance em diferentes tamanhos
-- **Desvantagens**:
-  - Mais complexa de implementar
-  - Pode ser mais lenta que Warnsdorff
+  - Tempo de execução MUITO alto (29x mais lento que Warnsdorff)
+  - Consome muitos recursos computacionais
+  - Implementação realista e complexa
 
 ## Funcionalidades Adicionadas
 
@@ -132,7 +115,8 @@ trabalho_OP_PUC/
 
 ## Funcionalidades da Interface
 
-- **Sidebar**: 
+- **Sidebar**:
+
   - Seleção do tamanho do tabuleiro
   - Escolha da heurística
   - Coordenadas iniciais (X,Y)
@@ -147,7 +131,8 @@ trabalho_OP_PUC/
 ## Análise Comparativa
 
 O projeto inclui uma função de análise comparativa que permite:
-- Comparar o desempenho de todas as heurísticas
+
+- Comparar o desempenho das 3 heurísticas implementadas
 - Visualizar estatísticas detalhadas
 - Identificar a melhor heurística para cada caso
 - Analisar cobertura e tempo de execução
@@ -158,17 +143,23 @@ Para contribuir com o projeto:
 
 1. Faça um fork do repositório
 2. Crie uma branch para sua feature:
+
 ```bash
 git checkout -b feature/nova-feature
 ```
+
 3. Faça suas alterações e commit:
+
 ```bash
 git commit -m "Adiciona nova feature"
 ```
+
 4. Push para o repositório:
+
 ```bash
 git push origin feature/nova-feature
 ```
+
 5. Crie um Pull Request
 
 ## Troubleshooting
@@ -179,8 +170,9 @@ git push origin feature/nova-feature
 
 ## Contribuições e Melhorias
 
-- Adição de novas heurísticas
+- Implementação de novas heurísticas
 - Suporte para tabuleiros maiores
 - Interface interativa aprimorada
 - Análise comparativa detalhada
 - Visualização de casas não alcançáveis
+- Otimização das heurísticas existentes
