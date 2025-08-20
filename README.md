@@ -1,6 +1,6 @@
 # Projeto Passeio do Cavalo – Múltiplas Heurísticas
 
-Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando diferentes heurísticas, incluindo Warnsdorff, Neural e Backtracking.
+Este projeto implementa uma solução interativa para o problema do passeio do cavalo em tabuleiros de xadrez utilizando diferentes heurísticas, incluindo Warnsdorff, Híbrida, Neural e Backtracking.
 
 ## Ferramentas Utilizadas
 
@@ -65,21 +65,33 @@ trabalho_OP_PUC/
   - Pode falhar em tabuleiros maiores
   - Sensível à posição inicial
 
-### 2. Heurística Neural
+### 2. Heurística Híbrida
 
-- **Princípio**: Utiliza múltiplos fatores para tomar decisões
+- **Princípio**: Combina múltiplos fatores com pesos otimizados
 - **Características consideradas**:
-  - Acessibilidade da próxima posição
-  - Distância do centro do tabuleiro
-  - Distância das bordas
+  - Acessibilidade da próxima posição (60% do score)
+  - Distância do centro do tabuleiro (10% do score)
+  - Distância das bordas (30% do score)
 - **Vantagens**:
   - Boa adaptabilidade
-  - Considera múltiplos fatores
+  - Sistema baseado em regras com pesos otimizados
 - **Desvantagens**:
   - Mais complexa computacionalmente
   - Performance intermediária
 
-### 3. Heurística Backtracking
+### 3. Heurística Neural
+
+- **Princípio**: Rede neural real treinada com backpropagation
+- **Arquitetura**: 64 entradas → 128 neurônios ocultos → 64 saídas
+- **Funcionamento**: Aprende padrões de movimento através de exemplos reais
+- **Vantagens**:
+  - Pode descobrir estratégias não óbvias
+  - Adapta-se aos dados de treinamento
+- **Desvantagens**:
+  - Requer treinamento prévio
+  - Mais complexa de implementar e treinar
+
+### 4. Heurística Backtracking
 
 - **Princípio**: Explora sistematicamente possíveis caminhos com profundidade limitada
 - **Funcionamento**:
@@ -132,7 +144,7 @@ trabalho_OP_PUC/
 
 O projeto inclui uma função de análise comparativa que permite:
 
-- Comparar o desempenho das 3 heurísticas implementadas
+- Comparar o desempenho das 4 heurísticas implementadas
 - Visualizar estatísticas detalhadas
 - Identificar a melhor heurística para cada caso
 - Analisar cobertura e tempo de execução

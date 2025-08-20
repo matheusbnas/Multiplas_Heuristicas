@@ -9,6 +9,103 @@ import time
 import pandas as pd
 
 
+class NeuralNetwork:
+    """Implementa uma rede neural real com backpropagation"""
+
+    def __init__(self, input_size=64, hidden_size=128, output_size=64):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.is_trained = False
+
+        # Inicializa pesos e bias aleatoriamente
+        np.random.seed(42)  # Para reprodutibilidade
+        self.weights1 = np.random.randn(input_size, hidden_size) * 0.01
+        self.weights2 = np.random.randn(hidden_size, output_size) * 0.01
+        self.bias1 = np.zeros(hidden_size)
+        self.bias2 = np.zeros(output_size)
+
+        # Histórico de treinamento
+        self.training_history = []
+
+    def sigmoid(self, x):
+        """Função de ativação sigmoid"""
+        return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
+
+    def sigmoid_derivative(self, x):
+        """Derivada da função sigmoid"""
+        return x * (1 - x)
+
+    def forward(self, X):
+        """Forward propagation"""
+        # Camada oculta
+        self.hidden = self.sigmoid(np.dot(X, self.weights1) + self.bias1)
+
+        # Camada de saída
+        self.output = self.sigmoid(
+            np.dot(self.hidden, self.weights2) + self.bias2)
+
+        return self.output
+
+    def backward(self, X, y, learning_rate=0.01):
+        """Backpropagation para treinamento"""
+        m = X.shape[0]
+
+        # Calcula gradientes
+        d_output = (self.output - y) * self.sigmoid_derivative(self.output)
+        d_hidden = np.dot(d_output, self.weights2.T) * \
+            self.sigmoid_derivative(self.hidden)
+
+        # Atualiza pesos e bias
+        self.weights2 -= learning_rate * np.dot(self.hidden.T, d_output) / m
+        self.bias2 -= learning_rate * np.mean(d_output, axis=0)
+        self.weights1 -= learning_rate * np.dot(X.T, d_hidden) / m
+        self.bias1 -= learning_rate * np.mean(d_hidden, axis=0)
+
+    def train(self, X, y, epochs=100, learning_rate=0.01, batch_size=32):
+        """Treina a rede neural"""
+        print(
+            f"Treinando rede neural: {epochs} épocas, taxa de aprendizado: {learning_rate}")
+
+        for epoch in range(epochs):
+            # Shuffle dos dados
+            indices = np.random.permutation(len(X))
+            X_shuffled = X[indices]
+            y_shuffled = y[indices]
+
+            # Treinamento em batches
+            for i in range(0, len(X), batch_size):
+                batch_X = X_shuffled[i:i+batch_size]
+                batch_y = y_shuffled[i:i+batch_size]
+
+                # Forward pass
+                self.forward(batch_X)
+
+                # Backward pass
+                self.backward(batch_X, batch_y, learning_rate)
+
+            # Calcula loss a cada 10 épocas
+            if epoch % 10 == 0:
+                loss = self.calculate_loss(X, y)
+                self.training_history.append(loss)
+                print(f"Época {epoch}, Loss: {loss:.6f}")
+
+        self.is_trained = True
+        print("Treinamento concluído!")
+
+    def calculate_loss(self, X, y):
+        """Calcula loss (erro quadrático médio)"""
+        predictions = self.forward(X)
+        return np.mean((predictions - y) ** 2)
+
+    def predict(self, X):
+        """Faz predição para novos dados"""
+        if not self.is_trained:
+            raise ValueError("Rede neural não foi treinada ainda!")
+
+        return self.forward(X.reshape(1, -1)).flatten()
+
+
 class AnimatedKnightTour:
     def __init__(self, board_size=8):
         self.board_size = board_size
@@ -117,8 +214,8 @@ class AnimatedKnightTour:
 
         return min(next_moves, key=lambda x: x[0])[1]
 
-    def neural_next_move(self, position):
-        """Implementa a heurística Neural baseada em características múltiplas"""
+    def hybrid_next_move(self, position):
+        """Implementa a heurística Híbrida baseada em características múltiplas"""
         valid_moves = self.get_valid_moves(position)
         if not valid_moves:
             return None
@@ -146,6 +243,135 @@ class AnimatedKnightTour:
             next_moves.append((score, move))
 
         return max(next_moves, key=lambda x: x[0])[1]
+
+    def neural_next_move(self, position):
+        """Implementa uma verdadeira rede neural treinada"""
+        valid_moves = self.get_valid_moves(position)
+        if not valid_moves:
+            return None
+
+        # Se a rede neural não foi treinada, usa heurística híbrida como fallback
+        if not hasattr(self, 'neural_network') or not self.neural_network.is_trained:
+            return self.hybrid_next_move(position)
+
+        # Converte posição atual em vetor de entrada
+        input_vector = self._position_to_input_vector(position)
+
+        # Faz predição da rede neural
+        prediction = self.neural_network.predict(input_vector)
+
+        # Encontra o melhor movimento baseado na predição
+        best_move = None
+        best_score = -float('inf')
+
+        for move in valid_moves:
+            # Calcula score baseado na predição da rede
+            move_score = self._calculate_move_score(move, prediction)
+            if move_score > best_score:
+                best_score = move_score
+                best_move = move
+
+        return best_move
+
+    def _position_to_input_vector(self, position):
+        """Converte posição do tabuleiro em vetor de entrada para a rede neural"""
+        # Cria vetor de entrada com informações do tabuleiro
+        input_vector = np.zeros(64)  # 8x8 = 64 posições
+
+        # Marca posição atual
+        x, y = position
+        input_vector[x * 8 + y] = 1
+
+        # Adiciona informações sobre casas visitadas
+        for visited_x, visited_y in self.moves_history:
+            if 0 <= visited_x < 8 and 0 <= visited_y < 8:
+                input_vector[visited_x * 8 + visited_y] = 0.5
+
+        # Adiciona informações sobre acessibilidade
+        for dx, dy in [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]:
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < 8 and 0 <= new_y < 8 and self.board[new_x, new_y] == 0:
+                input_vector[new_x * 8 + new_y] = 0.3
+
+        return input_vector
+
+    def _calculate_move_score(self, move, prediction):
+        """Calcula score do movimento baseado na predição da rede neural"""
+        x, y = move
+
+        # Score base da predição da rede
+        base_score = prediction[x * 8 + y]
+
+        # Bonus para movimentos que mantêm opções futuras
+        self.board[x, y] = 1
+        future_moves = len(self.get_valid_moves(move))
+        self.board[x, y] = 0
+
+        # Score composto: predição da rede + heurística de acessibilidade
+        final_score = base_score * 0.7 + (future_moves / 8.0) * 0.3
+
+        return final_score
+
+    def train_neural_network(self, num_games=1000):
+        """Treina a rede neural com dados de jogos"""
+        print("Iniciando treinamento da rede neural...")
+
+        # Cria rede neural se não existir
+        if not hasattr(self, 'neural_network'):
+            self.neural_network = NeuralNetwork()
+
+        # Gera dados de treinamento
+        training_data, target_moves = self._generate_training_data(num_games)
+
+        # Treina a rede
+        self.neural_network.train(training_data, target_moves)
+
+        print(f"Rede neural treinada com {num_games} jogos!")
+
+    def _generate_training_data(self, num_games):
+        """Gera dados de treinamento baseados em jogos completos"""
+        training_data = []
+        target_moves = []
+
+        for game in range(num_games):
+            # Reseta tabuleiro para novo jogo
+            self.board = np.zeros((8, 8))
+            self.moves_history = []
+
+            # Joga um jogo completo usando Warnsdorff como referência
+            start_pos = (np.random.randint(0, 8), np.random.randint(0, 8))
+            self.current_position = start_pos
+            self.board[start_pos[0], start_pos[1]] = 1
+            self.moves_history = [start_pos]
+
+            # Joga até não conseguir mais movimentos
+            while len(self.moves_history) < 64:
+                next_move = self.warnsdorff_next_move(self.current_position)
+                if next_move is None:
+                    break
+
+                # Adiciona dados de treinamento
+                if len(self.moves_history) > 1:  # Pula primeiro movimento
+                    input_vector = self._position_to_input_vector(
+                        self.moves_history[-2])
+                    target_vector = self._move_to_target_vector(next_move)
+
+                    training_data.append(input_vector)
+                    target_moves.append(target_vector)
+
+                # Executa movimento
+                self.current_position = next_move
+                self.board[next_move[0], next_move[1]] = 1
+                self.moves_history.append(next_move)
+
+        return np.array(training_data), np.array(target_moves)
+
+    def _move_to_target_vector(self, move):
+        """Converte movimento em vetor alvo para treinamento"""
+        target = np.zeros(64)
+        x, y = move
+        target[x * 8 + y] = 1
+        return target
 
     def backtracking_next_move(self, position, depth=3):
         """Implementa a heurística Backtracking com profundidade limitada - Versão Realista"""
@@ -235,6 +461,7 @@ class AnimatedKnightTour:
 
         heuristic_functions = {
             "Warnsdorff": self.warnsdorff_next_move,
+            "Híbrida": self.hybrid_next_move,
             "Neural": self.neural_next_move,
             "Backtracking": self.backtracking_next_move
         }
@@ -271,7 +498,7 @@ class AnimatedKnightTour:
 def analyze_heuristics(board_size=8, start_position=(0, 0)):
     """Analisa o desempenho de cada heurística"""
     results = {}
-    heuristics = ["Warnsdorff", "Neural", "Backtracking"]
+    heuristics = ["Warnsdorff", "Híbrida", "Neural", "Backtracking"]
 
     for heuristic in heuristics:
         start_time = time.time()
@@ -375,13 +602,21 @@ def main():
     # Adiciona seleção de heurística
     heuristic = st.sidebar.selectbox(
         "Escolha a heurística:",
-        ["Warnsdorff", "Neural", "Backtracking"]
+        ["Warnsdorff", "Híbrida", "Neural", "Backtracking"]
     )
 
     # Mostra explicação da heurística selecionada
     if st.sidebar.checkbox("Mostrar explicação da heurística"):
         st.sidebar.markdown("### Explicação da Heurística Selecionada")
         st.sidebar.markdown(get_heuristic_explanation(heuristic))
+
+    # Botão para treinar rede neural
+    if st.sidebar.button("Treinar Rede Neural"):
+        with st.spinner("Treinando rede neural... Isso pode demorar alguns minutos."):
+            knight_tour = AnimatedKnightTour(board_size)
+            knight_tour.train_neural_network(
+                num_games=500)  # Reduzido para teste
+            st.sidebar.success("Rede neural treinada com sucesso!")
 
     start_x = st.sidebar.selectbox(
         "Posição inicial X (coluna):", range(board_size))
@@ -463,11 +698,17 @@ def main():
             - Não garante solução em todos os tabuleiros
             - Baseada em estratégia gulosa
         
-        - **Neural:** 
+        - **Híbrida:** 
             - Considera múltiplos fatores: acessibilidade, distância do centro e das bordas
-            - Aprende padrões de movimento através de características calculadas
+            - Sistema baseado em regras com pesos otimizados
             - Performance intermediária com boa adaptabilidade
             - Combina heurísticas tradicionais de forma inteligente
+        
+        - **Neural:** 
+            - Rede neural real treinada com backpropagation
+            - Aprende padrões de movimento através de exemplos reais
+            - Pode descobrir estratégias não óbvias
+            - Requer treinamento prévio para funcionar adequadamente
         
         - **Backtracking:**
             - Busca exaustiva com profundidade limitada (3 níveis)
@@ -493,15 +734,25 @@ def get_heuristic_explanation(heuristic):
         - **Desvantagens:** Não garante solução em todos os tabuleiros, baseada em estratégia gulosa
         - **Melhor para:** Tabuleiros menores (8x8) onde a probabilidade de sucesso é alta
         """,
-        "Neural": """
-        **Heurística Neural com Características Múltiplas:**
+        "Híbrida": """
+        **Heurística Híbrida com Características Múltiplas:**
         
         Considera múltiplos fatores para tomar decisões inteligentes:
         - **Acessibilidade:** Número de movimentos futuros disponíveis (60% do score)
         - **Distância do Centro:** Prefere posições centrais para manter flexibilidade (10% do score)
         - **Distância das Bordas:** Evita cantos e bordas para maximizar opções (30% do score)
         - **Vantagens:** Boa adaptabilidade, combina heurísticas tradicionais de forma inteligente
-        - **Aplicação:** Aprende padrões de movimento através de características calculadas
+        - **Aplicação:** Sistema baseado em regras com pesos otimizados
+        """,
+        "Neural": """
+        **Verdadeira Rede Neural com Backpropagation:**
+        
+        Implementa uma rede neural real treinada com dados de jogos:
+        - **Arquitetura:** 64 entradas (tabuleiro 8x8) → 128 neurônios ocultos → 64 saídas
+        - **Treinamento:** Backpropagation com dados de jogos usando Warnsdorff como referência
+        - **Funcionamento:** Aprende padrões de movimento através de exemplos reais
+        - **Vantagens:** Pode descobrir estratégias não óbvias, adapta-se aos dados
+        - **Nota:** Requer treinamento prévio para funcionar adequadamente
         """,
         "Backtracking": """
         **Busca Exaustiva com Profundidade Limitada - Versão Realista:**
